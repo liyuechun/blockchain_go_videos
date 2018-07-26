@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"encoding/hex"
 	"github.com/boltdb/bolt"
-	"os"
 )
 
 func handleVersion(request []byte,bc *Blockchain)  {
@@ -30,8 +29,8 @@ func handleVersion(request []byte,bc *Blockchain)  {
 	//2. BestHeight
 	//3. 节点地址
 
-	bestHeight := bc.GetBestHeight() //3
-	foreignerBestHeight := payload.BestHeight // 1
+	bestHeight := bc.GetBestHeight() //3 1
+	foreignerBestHeight := payload.BestHeight // 1 3
 
 	if bestHeight > foreignerBestHeight {
 		sendVersion(payload.AddrFrom,bc)
@@ -71,7 +70,7 @@ func handleGetblocks(request []byte,bc *Blockchain)  {
 
 	blocks := bc.GetBlockHashes()
 
-	//
+	//txHash blockHash
 	sendInv(payload.AddrFrom, BLOCK_TYPE, blocks)
 
 
@@ -131,6 +130,8 @@ func handleBlock(request []byte,bc *Blockchain)  {
 
 	fmt.Println("Recevied a new block!")
 	bc.AddBlock(block)
+	UTXOSet := &UTXOSet{bc}
+	UTXOSet.Update()
 
 	fmt.Printf("Added block %x\n", block.Hash)
 
@@ -141,9 +142,9 @@ func handleBlock(request []byte,bc *Blockchain)  {
 		transactionArray = transactionArray[1:]
 	} else {
 
-		fmt.Println("数据库重置......")
-		UTXOSet := &UTXOSet{bc}
-		UTXOSet.ResetUTXOSet()
+		//fmt.Println("数据库重置......")
+		//UTXOSet := &UTXOSet{bc}
+		//UTXOSet.ResetUTXOSet()
 
 	}
 
@@ -161,7 +162,7 @@ func handleTx(request []byte,bc *Blockchain)  {
 	dec := gob.NewDecoder(&buff)
 	err := dec.Decode(&payload)
 	if err != nil {
-		log.Panic("发序列化错误:",err)
+		log.Panic(err)
 	}
 
 	//-----
@@ -181,31 +182,46 @@ func handleTx(request []byte,bc *Blockchain)  {
 		}
 	}
 
+
+
 	// 矿工进行挖矿验证
 	// "" | 1DVFvyCK8qTQkLBTZ5fkh5eDSbcZVoHAsj
 	if len(minerAddress) > 0 {
 
-		bc.DB.Close()
 
-		blockchain := BlockchainObject(os.Getenv("NODE_ID"))
-		defer blockchain.DB.Close()
 
-		//1.建立一笔交易
+		utxoSet := &UTXOSet{bc}
 		//
-		utxoSet := &UTXOSet{blockchain}
-
-		var txs []*Transaction
-
-		txs = append(txs, tx)
+		//
+		txs := []*Transaction{tx}
 
 		//奖励
-		coinTX := NewCoinbaseTransaction(minerAddress)
-		txs = append(txs, coinTX)
+		coinbaseTx := NewCoinbaseTransaction(minerAddress)
+		txs = append(txs,coinbaseTx)
+
+		_txs := []*Transaction{}
+
+		//fmt.Println("开始进行数字签名验证.....")
+
+		for _,tx := range txs  {
+
+			//fmt.Printf("开始第%d次验证...\n",index)
+
+			// 作业，数字签名失败
+			if bc.VerifyTransaction(tx,_txs) != true {
+				log.Panic("ERROR: Invalid transaction")
+			}
+
+			//fmt.Printf("第%d次验证成功\n",index)
+			_txs = append(_txs,tx)
+		}
+
+		//fmt.Println("数字签名验证成功.....")
 
 		//1. 通过相关算法建立Transaction数组
 		var block *Block
 
-		blockchain.DB.View(func(tx *bolt.Tx) error {
+		bc.DB.View(func(tx *bolt.Tx) error {
 
 			b := tx.Bucket([]byte(blockTableName))
 			if b != nil {
@@ -221,24 +237,11 @@ func handleTx(request []byte,bc *Blockchain)  {
 			return nil
 		})
 
-		// 在建立新区块之前对txs进行签名验证
-
-		_txs := []*Transaction{}
-
-		for _, tx := range txs {
-
-			if blockchain.VerifyTransaction(tx, _txs) != true {
-				log.Panic("ERROR: Invalid transaction")
-			}
-
-			_txs = append(_txs, tx)
-		}
-
 		//2. 建立新的区块
 		block = NewBlock(txs, block.Height+1, block.Hash)
 
 		//将新区块存储到数据库
-		blockchain.DB.Update(func(tx *bolt.Tx) error {
+		bc.DB.Update(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte(blockTableName))
 			if b != nil {
 
@@ -246,82 +249,13 @@ func handleTx(request []byte,bc *Blockchain)  {
 
 				b.Put([]byte("l"), block.Hash)
 
-				blockchain.Tip = block.Hash
+				bc.Tip = block.Hash
 
 			}
 			return nil
 		})
-		//转账成功以后，需要更新一下
 		utxoSet.Update()
-		sendBlock(knowNodes[0], block.Serialize())
-
-
-
-
-
-
-		//
-		//txs := []*Transaction{tx}
-		//
-		//coinbaseTx := NewCoinbaseTransaction(minerAddress)
-		//txs = append(txs,coinbaseTx)
-		//
-		//_txs := []*Transaction{}
-		//
-		//fmt.Println("开始进行数字签名验证.....")
-		//
-		//for index,tx := range txs  {
-		//
-		//	fmt.Printf("开始第%d次验证...\n",index)
-		//
-		//	if bc.VerifyTransaction(tx,_txs) != true {
-		//		log.Panic("ERROR: Invalid transaction")
-		//	}
-		//
-		//	fmt.Printf("第%d次验证成功\n",index)
-		//	_txs = append(_txs,tx)
-		//}
-		//
-		//fmt.Println("数字签名验证成功.....")
-		//
-		////1. 通过相关算法建立Transaction数组
-		//var block *Block
-		//
-		//bc.DB.View(func(tx *bolt.Tx) error {
-		//
-		//	b := tx.Bucket([]byte(blockTableName))
-		//	if b != nil {
-		//
-		//		hash := b.Get([]byte("l"))
-		//
-		//		blockBytes := b.Get(hash)
-		//
-		//		block = DeserializeBlock(blockBytes)
-		//
-		//	}
-		//
-		//	return nil
-		//})
-		//
-		////2. 建立新的区块
-		//block = NewBlock(txs, block.Height+1, block.Hash)
-		//
-		////将新区块存储到数据库
-		//bc.DB.Update(func(tx *bolt.Tx) error {
-		//	b := tx.Bucket([]byte(blockTableName))
-		//	if b != nil {
-		//
-		//		b.Put(block.Hash, block.Serialize())
-		//
-		//		b.Put([]byte("l"), block.Hash)
-		//
-		//		bc.Tip = block.Hash
-		//
-		//	}
-		//	return nil
-		//})
-		//
-		//sendBlock(knowNodes[0],block.Serialize())
+		sendBlock(knowNodes[0],block.Serialize())
 	}
 
 

@@ -22,11 +22,11 @@ type ProofOfWork struct {
 }
 
 // 数据拼接，返回字节数组
-func (pow *ProofOfWork) prepareData(nonce int,txHash []byte) []byte {
+func (pow *ProofOfWork) prepareData(nonce int) []byte {
 	data := bytes.Join(
 		[][]byte{
 			pow.Block.PrevBlockHash,
-			txHash,
+			pow.Block.HashTransactions(),
 			IntToHex(pow.Block.Timestamp),
 			IntToHex(int64(targetBit)),
 			IntToHex(int64(nonce)),
@@ -53,12 +53,9 @@ func (proofOfWork *ProofOfWork) Run() ([]byte,int64) {
 	var hashInt big.Int // 存储我们新生成的hash
 	var hash [32]byte
 
-	//交易hash在挖矿前处理好，不需要在挖矿时重复处理
-	txHash := proofOfWork.Block.HashTransactions()
-
 	for {
 		//准备数据
-		dataBytes := proofOfWork.prepareData(nonce,txHash)
+		dataBytes := proofOfWork.prepareData(nonce)
 
 		// 生成hash
 		hash = sha256.Sum256(dataBytes)

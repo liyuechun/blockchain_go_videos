@@ -1,14 +1,15 @@
 package BLC
 
 import (
-	"log"
 	"bytes"
 	"encoding/gob"
+	"log"
 )
 
 type TXOutputs struct {
 	UTXOS []*UTXO
 }
+
 
 // 将区块序列化成字节数组
 func (txOutputs *TXOutputs) Serialize() []byte {
@@ -23,13 +24,6 @@ func (txOutputs *TXOutputs) Serialize() []byte {
 	}
 
 	return result.Bytes()
-	//fmt.Println("$$$$$$$$$$")
-	//jsonByte, err := json.Marshal(txOutputs)
-	//if err != nil {
-	//	//fmt.Println("序列化失败:",err)
-	//	log.Panic(err)
-	//}
-	//return jsonByte
 }
 
 // 反序列化
@@ -44,6 +38,4 @@ func DeserializeTXOutputs(txOutputsBytes []byte) *TXOutputs {
 	}
 
 	return &txOutputs
-	//json.Unmarshal(txOutputsBytes, &txOutputs)
-	//return &txOutputs
 }

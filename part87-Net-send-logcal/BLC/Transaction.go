@@ -12,7 +12,6 @@ import (
 	"math/big"
 	"crypto/elliptic"
 	"time"
-	"fmt"
 	"encoding/json"
 )
 
@@ -29,20 +28,8 @@ type Transaction struct {
 	Vouts []*TXOutput
 }
 
+//[]byte{}
 
-func (tx *Transaction) PrintTX() {
-	fmt.Printf("txHash : %s\n", hex.EncodeToString(tx.TxHash))
-
-	fmt.Println("Vins====")
-	for _, vin := range tx.Vins {
-		vin.PrintInfo()
-	}
-	fmt.Println("Vouts====")
-	for _, vout := range tx.Vouts {
-		vout.PrintInfo()
-	}
-	fmt.Println("============================")
-}
 // 判断当前的交易是否是Coinbase交易
 func (tx *Transaction) IsCoinbaseTransaction() bool {
 
@@ -112,6 +99,7 @@ func NewSimpleTransaction(from string,to string,amount int64,utxoSet *UTXOSet,tx
 	var txOutputs []*TXOutput
 
 	for txHash,indexArray := range spendableUTXODic  {
+
 		txHashBytes,_ := hex.DecodeString(txHash)
 		for _,index := range indexArray  {
 
@@ -119,15 +107,12 @@ func NewSimpleTransaction(from string,to string,amount int64,utxoSet *UTXOSet,tx
 			txIntputs = append(txIntputs,txInput)
 		}
 
-
 	}
 
 	// 转账
 	txOutput := NewTXOutput(int64(amount),to)
 	txOutputs = append(txOutputs,txOutput)
 
-
-	fmt.Println("找零:",int64(money) ,"-",int64(amount),":",int64(money) - int64(amount))
 	// 找零
 	txOutput = NewTXOutput(int64(money) - int64(amount),from)
 	txOutputs = append(txOutputs,txOutput)
@@ -140,7 +125,6 @@ func NewSimpleTransaction(from string,to string,amount int64,utxoSet *UTXOSet,tx
 	//进行签名
 	utxoSet.Blockchain.SignTransaction(tx, wallet.PrivateKey,txs)
 
-	tx.PrintTX()
 	return tx
 
 }
@@ -156,25 +140,26 @@ func (tx *Transaction) Hash() []byte {
 }
 
 
-func (tx *Transaction) Serialize() []byte {
+//func (tx *Transaction) Serialize() []byte {
+//	var encoded bytes.Buffer
+//
+//	enc := gob.NewEncoder(&encoded)
+//	err := enc.Encode(tx)
+//	if err != nil {
+//		log.Panic(err)
+//	}
+//
+//	return encoded.Bytes()
+//}
 
-	fmt.Println("$$$$$$$$$$")
+
+func (tx *Transaction) Serialize() []byte {
 	jsonByte,err := json.Marshal(tx)
 	if err != nil{
 		//fmt.Println("序列化失败:",err)
 		log.Panic(err)
 	}
 	return jsonByte
-
-	//var encoded bytes.Buffer
-	//
-	//enc := gob.NewEncoder(&encoded)
-	//err := enc.Encode(tx)
-	//if err != nil {
-	//	log.Panic(err)
-	//}
-	//
-	//return encoded.Bytes()
 }
 
 
@@ -193,13 +178,8 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTXs map[string]Transac
 
 
 	txCopy := tx.TrimmedCopy()
-	fmt.Println("签名前")
 
 	for inID, vin := range txCopy.Vins {
-
-		fmt.Println("签名中")
-
-
 		prevTx := prevTXs[hex.EncodeToString(vin.TxHash)]
 		txCopy.Vins[inID].Signature = nil
 		txCopy.Vins[inID].PublicKey = prevTx.Vouts[vin.Vout].Ripemd160Hash
@@ -240,6 +220,7 @@ func (tx *Transaction) TrimmedCopy() Transaction {
 // 数字签名验证
 
 func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
+
 	if tx.IsCoinbaseTransaction() {
 		return true
 	}

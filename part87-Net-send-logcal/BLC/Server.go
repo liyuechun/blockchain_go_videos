@@ -11,7 +11,7 @@ import (
 
 
 func startServer(nodeID string,minerAdd string)  {
-
+	//""
 	// 当前节点的IP地址
 	nodeAddress = fmt.Sprintf("localhost:%s",nodeID)
 
@@ -28,7 +28,7 @@ func startServer(nodeID string,minerAdd string)  {
 
 	bc := BlockchainObject(nodeID)
 
-	defer bc.DB.Close()
+	//defer bc.DB.Close()
 
 	// 第一个终端：端口为3000,启动的就是主节点
 	// 第二个终端：端口为3001，钱包节点
@@ -65,6 +65,7 @@ func handleConnection(conn net.Conn,bc *Blockchain) {
 
 	fmt.Printf("Receive a Message:%s\n",request[:COMMANDLENGTH])
 
+	//version
 	command := bytesToCommand(request[:COMMANDLENGTH])
 
 

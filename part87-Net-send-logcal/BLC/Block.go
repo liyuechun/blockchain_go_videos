@@ -28,6 +28,16 @@ type Block struct {
 func (block *Block) HashTransactions() []byte  {
 
 
+	//var txHashes [][]byte
+	//var txHash [32]byte
+	//
+	//for _, tx := range block.Txs {
+	//	txHashes = append(txHashes, tx.TxHash)
+	//}
+	//txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
+	//
+	//return txHash[:]
+
 	var transactions [][]byte
 
 	for _, tx := range block.Txs {

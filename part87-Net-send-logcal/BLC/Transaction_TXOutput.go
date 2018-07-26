@@ -1,21 +1,13 @@
 package BLC
 
-import (
-	"bytes"
-	"fmt"
-	"encoding/hex"
-)
+import "bytes"
 
 
 type TXOutput struct {
 	Value int64
 	Ripemd160Hash []byte  //用户名
 }
-func (txOutput *TXOutput)PrintInfo()  {
-	fmt.Printf("Value:%s\n",txOutput.Value)
-	fmt.Printf("Ripemd160Hash:%s\n",hex.EncodeToString(txOutput.Ripemd160Hash))
 
-}
 func (txOutput *TXOutput)  Lock(address string)  {
 
 	publicKeyHash := Base58Decode([]byte(address))

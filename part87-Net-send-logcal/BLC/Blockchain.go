@@ -599,6 +599,7 @@ func (bc *Blockchain) VerifyTransaction(tx *Transaction,txs []*Transaction) bool
 
 	for _, vin := range tx.Vins {
 		prevTX, err := bc.FindTransaction(vin.TxHash,txs)
+
 		if err != nil {
 			log.Panic(err)
 		}

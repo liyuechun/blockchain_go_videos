@@ -76,6 +76,7 @@ func sendBlock(toAddress string, block []byte)  {
 
 func sendTx(toAddress string,tx *Transaction)  {
 
+
 	payload := gobEncode(Tx{nodeAddress,tx})
 
 	request := append(commandToBytes(COMMAND_TX), payload...)

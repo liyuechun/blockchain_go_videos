@@ -23,6 +23,7 @@ func (cli *CLI) send(from []string,to []string,amount []string,nodeID string,min
 		fmt.Println("由矿工节点处理......")
 		value, _ := strconv.Atoi(amount[0])
 		tx := NewSimpleTransaction(from[0], to[0], int64(value), utxoSet,[]*Transaction{},nodeID)
+
 		sendTx(knowNodes[0],tx)
 	}
 
