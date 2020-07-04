@@ -64,7 +64,7 @@
 
 - 公众号：区块链部落
 - 技术交流QQ群：263270946
-- 博客：http://liyuechun.org
+- 博客：http://liyuechun.com
 
 
 ### 5. 备注⚠️
